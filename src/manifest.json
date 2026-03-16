@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Ollama Reply",
+  "version": "3.2.0",
+  "description": "Generate email replies using Ollama LLM running on a local or remote server.",
+  "author": "Tetsuo Yokoyama",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "ollama-reply@yokoyama-lab.org",
+      "strict_min_version": "128.0"
+    }
+  },
+  "permissions": [
+    "messagesRead",
+    "compose",
+    "storage",
+    "accountsRead"
+  ],
+  "host_permissions": [
+    "http://localhost:11434/*",
+    "http://localhost:11435/*",
+    "http://127.0.0.1:11434/*",
+    "http://127.0.0.1:11435/*"
+  ],
+  "message_display_action": {
+    "default_title": "AI返信を生成"
+  },
+  "action": {
+    "default_title": "Ollama Reply モニター"
+  },
+  "commands": {
+    "generate-reply": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+R"
+      },
+      "description": "AI返信を生成タブを開く"
+    }
+  },
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  }
+}

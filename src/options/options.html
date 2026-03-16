@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px; padding: 16px; max-width: 520px;
+    }
+    h2 { font-size: 15px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #e0e0e0; }
+    h3 { font-size: 13px; margin: 14px 0 8px; color: #444; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-weight: 600; margin-bottom: 3px; }
+    .field .hint { font-size: 11px; color: #777; margin-top: 2px; }
+    input[type="text"], input[type="number"], select {
+      width: 100%; padding: 6px 8px; border: 1px solid #ccc;
+      border-radius: 4px; font-size: 13px; box-sizing: border-box;
+    }
+    input:focus, select:focus { outline: none; border-color: #0060df; }
+    .row { display: flex; gap: 12px; align-items: flex-end; }
+    .row .field { flex: 1; }
+    .check-field { margin-bottom: 8px; }
+    .check-field label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal; }
+    button {
+      background: #0060df; color: #fff; border: none; border-radius: 4px;
+      padding: 8px 18px; font-size: 13px; cursor: pointer; margin-right: 8px;
+    }
+    button:hover { background: #004ebc; }
+    button.secondary { background: #f0f0f0; color: #333; border: 1px solid #ccc; }
+    button.secondary:hover { background: #e0e0e0; }
+    .saved {
+      display: inline-block; color: #0a0; font-size: 12px;
+      margin-left: 8px; opacity: 0; transition: opacity 0.3s;
+    }
+    .saved.show { opacity: 1; }
+    #model-list { font-size: 12px; color: #555; margin-top: 4px; }
+    #test-result { margin-top: 8px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h2>🤖 Ollama Reply — 設定</h2>
+
+  <div class="field">
+    <label for="ollamaUrl">Ollama サーバー URL</label>
+    <input type="text" id="ollamaUrl" placeholder="http://localhost:11434">
+    <div class="hint">デフォルトは http://localhost:11434。リモートサーバーを使う場合は SSHポートフォワード (ssh -N -L 11434:localhost:11434 server) で localhost を使用してください</div>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="model">デフォルトモデル</label>
+      <input type="text" id="model" placeholder="gemma3:4b">
+      <div id="model-list"></div>
+    </div>
+    <div class="field">
+      <label>&nbsp;</label>
+      <button type="button" class="secondary" id="btn-fetch-models">モデル一覧取得</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="temperature">Temperature</label>
+      <input type="number" id="temperature" min="0" max="2" step="0.1" value="0.7">
+    </div>
+    <div class="field">
+      <label for="maxTokens">最大トークン数</label>
+      <input type="number" id="maxTokens" min="64" max="8192" step="64" value="1024">
+    </div>
+  </div>
+
+  <h3>スレッド & 署名</h3>
+  <div class="check-field">
+    <label><input type="checkbox" id="threadContext"> スレッドコンテキストを含める（デフォルト）</label>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label for="threadDepth">スレッド遡り数</label>
+      <input type="number" id="threadDepth" min="1" max="10" value="3">
+    </div>
+  </div>
+  <div class="check-field">
+    <label><input type="checkbox" id="autoSignature"> 署名を自動付加（デフォルト）</label>
+  </div>
+
+  <h3>自動下書き生成</h3>
+  <div class="check-field">
+    <label><input type="checkbox" id="autoDraft"> 新着メール（自分宛て）に自動で返信案を下書き保存</label>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label for="autoDraftTone">自動生成のトーン</label>
+      <select id="autoDraftTone">
+        <option value="polite">丁寧</option>
+        <option value="business">ビジネス</option>
+        <option value="casual">カジュアル</option>
+        <option value="academic">学術的</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="autoDraftLanguage">自動生成の言語</label>
+      <select id="autoDraftLanguage">
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+  </div>
+  <div class="field">
+    <div class="hint">有効にすると、To/CC に自分が含まれる新着メールごとに Ollama で返信案を生成し、下書きフォルダに保存します。Ollama サーバーに負荷がかかるため、メール量が多い場合はご注意ください。</div>
+  </div>
+
+  <div style="margin-top: 16px;">
+    <button id="btn-save">保存</button>
+    <button id="btn-test" class="secondary">接続テスト</button>
+    <span id="saved-msg" class="saved">✅ 保存しました</span>
+  </div>
+  <div id="test-result"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>
