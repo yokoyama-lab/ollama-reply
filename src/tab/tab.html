@@ -39,18 +39,31 @@
         position: relative;
       }
       .candidate-tab.active { background: var(--pico-background-color); border-bottom-color: var(--pico-background-color); z-index: 2; font-weight: bold; }
-      .close-tab { margin-left: 0.5rem; opacity: 0.5; }
-      .close-tab:hover { opacity: 1; }
 
-      #reply-text { height: 350px; border-radius: 0 6px 6px 6px; font-size: 1rem; }
+      .editor-container { position: relative; }
+      #reply-text { height: 350px; border-radius: 0 6px 6px 6px; font-size: 1rem; font-family: inherit; }
+      #preview-area {
+        height: 350px; border-radius: 0 6px 6px 6px; font-size: 1rem; padding: 1rem;
+        border: 1px solid var(--pico-card-border-color); background: var(--pico-background-color);
+        overflow-y: auto; display: none;
+      }
+      #preview-area.show { display: block; }
+      #preview-area p { margin-bottom: 0.5rem; }
+      #preview-area ul, #preview-area ol { margin-bottom: 0.5rem; padding-left: 1.5rem; }
+
+      .view-toggle { position: absolute; top: -35px; right: 0; font-size: 0.8rem; }
       
+      .quick-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+      .action-chip {
+        font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 1rem;
+        background: var(--pico-muted-background-color); cursor: pointer; border: 1px solid transparent;
+        transition: all 0.2s;
+      }
+      .action-chip:hover { border-color: var(--pico-primary); color: var(--pico-primary); }
+
       .refine-box {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: 1rem;
-        padding: 1rem;
-        background: var(--pico-card-background-color);
-        border-radius: var(--pico-border-radius);
+        display: flex; gap: 0.5rem; margin-top: 0.5rem; padding: 1rem;
+        background: var(--pico-card-background-color); border-radius: var(--pico-border-radius);
       }
       .refine-box input { flex: 1; margin-bottom: 0; }
       .refine-box button { margin-bottom: 0; white-space: nowrap; }
@@ -117,8 +130,26 @@
     <div id="status" class="status"></div>
 
     <div id="reply-section">
-      <div id="candidate-tabs"></div>
-      <textarea id="reply-text" spellcheck="false"></textarea>
+      <div style="position:relative">
+        <div id="candidate-tabs"></div>
+        <div class="view-toggle">
+          <label style="margin:0"><input type="checkbox" id="opt-preview" role="switch" /> プレビュー</label>
+        </div>
+      </div>
+      
+      <div class="editor-container">
+        <textarea id="reply-text" spellcheck="false"></textarea>
+        <div id="preview-area"></div>
+      </div>
+
+      <div class="quick-actions" id="quick-actions">
+        <span class="action-chip" data-prompt="もっと短く">短縮</span>
+        <span class="action-chip" data-prompt="もっと丁寧に、謙譲語を適切に使って">より丁寧に</span>
+        <span class="action-chip" data-prompt="承諾する返事を書いて">承諾</span>
+        <span class="action-chip" data-prompt="丁重にお断りする内容にして">お断り</span>
+        <span class="action-chip" data-prompt="打ち合わせの候補日時を3つ提示して">日程提示</span>
+        <span class="action-chip" data-prompt="箇条書きを使ってわかりやすく整理して">要点整理</span>
+      </div>
 
       <div class="refine-box">
         <input type="text" id="refine-input" placeholder="例：もっと短く、より丁寧に..." />
@@ -149,7 +180,7 @@
       </div>
     </div>
 
-    <div id="history-panel" class="panel" style="display:none; margin-top: 1rem">
+    <div id="history-panel" style="display:none; margin-top: 1rem">
       <div style="display:flex; justify-content:space-between; align-items:center">
         <h3>履歴</h3>
         <button id="btn-clear-history" class="outline btn-sm">履歴消去</button>
@@ -158,7 +189,7 @@
       <p id="history-empty" style="text-align:center; padding: 2rem; color: #999">履歴はありません</p>
     </div>
 
-    <div id="template-editor" class="panel" style="display:none; margin-top: 1rem">
+    <div id="template-editor" style="display:none; margin-top: 1rem">
       <h3>テンプレート編集</h3>
       <div id="template-list"></div>
       <div style="margin-top:1rem; display:flex; gap:0.5rem">
@@ -168,7 +199,7 @@
     </div>
 
     <div style="margin-top: 2rem; text-align: right; font-size: 0.8rem; color: #999">
-      Ollama Reply v3.3.0 | <span id="timer">0s</span>
+      Ollama Reply v3.5.0 | <span id="timer">0s</span>
       <label style="display:inline-block; margin-left: 1rem">
         <input type="checkbox" id="opt-thread" checked /> スレッド文脈
       </label>

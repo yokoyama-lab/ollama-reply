@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "default_locale": "ja",
   "name": "__MSG_extensionName__",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "description": "__MSG_extensionDescription__",
   "author": "Tetsuo Yokoyama",
   "browser_specific_settings": {

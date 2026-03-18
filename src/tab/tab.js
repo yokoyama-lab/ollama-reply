@@ -1,4 +1,4 @@
-// tab.js — Ollama Reply v3.3.0
+// tab.js — Ollama Reply v3.5.0
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
@@ -30,10 +30,40 @@ function stopTimer() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 }
 
+// --- Markdown Renderer (Lightweight) ---
+function renderMarkdown(text) {
+  if (!text) return "";
+  let html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    // Bold
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    // Bullets
+    .replace(/^\s*[-*+]\s+(.*)$/gm, "<ul><li>$1</li></ul>")
+    .replace(/<\/ul>\n<ul>/g, "")
+    // Numbered lists
+    .replace(/^\s*\d+\.\s+(.*)$/gm, "<ol><li>$1</li></ol>")
+    .replace(/<\/ol>\n<ol>/g, "")
+    // Paragraphs
+    .replace(/\n\n/g, "</p><p>")
+    .replace(/\n/g, "<br>");
+  
+  return `<p>${html}</p>`;
+}
+
+function updatePreview() {
+  const text = $("#reply-text").value;
+  const area = $("#preview-area");
+  if ($("#opt-preview").checked) {
+    area.innerHTML = renderMarkdown(text);
+  }
+}
+
 // --- Message Loading ---
 async function loadMessage() {
   try {
-    setStatus("Loading message...");
+    setStatus("Loading...");
     const params = new URLSearchParams(window.location.search);
     const sourceTabId = parseInt(params.get("tabId"));
     if (!sourceTabId) {
@@ -119,12 +149,10 @@ async function generateStreaming(candidateIdx, refinementPrompt = null) {
   let systemPrompt, userPrompt;
 
   if (refinementPrompt) {
-    // Refinement Logic
     const currentReply = candidates[candidateIdx].text;
-    systemPrompt = "You are an email editor. Rewrite the following email reply based on the user's instructions. Keep the context of the original email thread. Output only the revised reply body.";
+    systemPrompt = "You are an email editor. Rewrite the following email reply based on the user's instructions. Keep the context of original thread. Output only the revised reply body.";
     userPrompt = `Original reply:\n---\n${currentReply}\n---\n\nInstructions: ${refinementPrompt}\n\nRevised reply:`;
   } else {
-    // Normal Generation
     const templateOpt = $("#template").selectedOptions[0];
     const templatePrompt = templateOpt ? templateOpt.dataset.prompt || "" : "";
     const promptData = await messenger.runtime.sendMessage({
@@ -149,6 +177,7 @@ async function generateStreaming(candidateIdx, refinementPrompt = null) {
         fullText += msg.chunk;
         if (candidateIdx === activeCandidateIdx) {
           $("#reply-text").value = fullText;
+          updatePreview();
           $("#reply-text").scrollTop = $("#reply-text").scrollHeight;
         }
         candidates[candidateIdx].text = fullText;
@@ -183,6 +212,7 @@ function renderCandidateTabs() {
       activeCandidateIdx = i;
       renderCandidateTabs();
       $("#reply-text").value = candidates[i].text;
+      updatePreview();
     });
     container.appendChild(tab);
   });
@@ -207,6 +237,7 @@ async function generateReply() {
 
     $("#reply-section").classList.add("show");
     $("#reply-text").value = "";
+    updatePreview();
     renderCandidateTabs();
 
     for (let i = 0; i < numCandidates; i++) {
@@ -219,6 +250,7 @@ async function generateReply() {
     activeCandidateIdx = 0;
     renderCandidateTabs();
     $("#reply-text").value = candidates[0].text;
+    updatePreview();
     setStatus(i18n("statusDone", [numCandidates.toString(), $("#timer").textContent]), "success");
   } catch (err) {
     stopTimer();
@@ -229,13 +261,13 @@ async function generateReply() {
 }
 
 // --- Refine Reply ---
-async function refineReply() {
-  const refinementPrompt = $("#refine-input").value.trim();
+async function refineReply(promptOverride = null) {
+  const refinementPrompt = promptOverride || $("#refine-input").value.trim();
   if (!refinementPrompt || !candidates[activeCandidateIdx]) return;
 
   try {
     $("#btn-refine").disabled = true;
-    setStatus("Refining reply...", "generating");
+    setStatus("Refining...", "generating");
     startTimer();
 
     const text = await generateStreaming(activeCandidateIdx, refinementPrompt);
@@ -243,6 +275,7 @@ async function refineReply() {
 
     stopTimer();
     $("#refine-input").value = "";
+    updatePreview();
     setStatus("✅ Refined!", "success");
   } catch (err) {
     stopTimer();
@@ -257,21 +290,19 @@ async function openReply(replyType) {
   const replyBody = $("#reply-text").value;
   if (!replyBody.trim()) return;
 
-  const result = await messenger.runtime.sendMessage({
+  await messenger.runtime.sendMessage({
     action: "openReplyCompose",
     messageId: currentMessage.id,
     replyBody,
     replyType,
     includeSignature: $("#opt-signature").checked,
   });
-  if (result.error) setStatus(result.error, "error");
 }
 
 function initI18n() {
-  $("#lbl-tone").textContent = i18n("tonePolite"); // fallback label
+  $("#lbl-tone").textContent = i18n("tonePolite");
   $("#lbl-lang").textContent = i18n("langEn");
   $("#btn-generate").textContent = i18n("btnGenerate");
-  $("#btn-regenerate").textContent = i18n("btnRegenerate");
   $("#btn-refine").textContent = i18n("btnRefine");
   $("#refine-input").placeholder = i18n("refinePlaceholder");
 }
@@ -285,10 +316,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
   $("#btn-generate").addEventListener("click", generateReply);
   $("#btn-regenerate").addEventListener("click", generateReply);
-  $("#btn-refine").addEventListener("click", refineReply);
+  $("#btn-refine").addEventListener("click", () => refineReply());
   $("#refine-input").addEventListener("keypress", (e) => {
     if (e.key === "Enter") refineReply();
   });
+
+  // Quick actions
+  $$(".action-chip").forEach(chip => {
+    chip.addEventListener("click", () => refineReply(chip.dataset.prompt));
+  });
+
+  // Preview toggle
+  $("#opt-preview").addEventListener("change", (e) => {
+    if (e.target.checked) {
+      $("#reply-text").style.display = "none";
+      $("#preview-area").classList.add("show");
+      updatePreview();
+    } else {
+      $("#reply-text").style.display = "block";
+      $("#preview-area").classList.remove("show");
+    }
+  });
+
+  $("#reply-text").addEventListener("input", updatePreview);
 
   $("#btn-use-reply").addEventListener("click", () => openReply("replyToSender"));
   $("#btn-use-reply-all").addEventListener("click", () => openReply("replyToAll"));
