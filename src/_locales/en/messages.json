@@ -1,0 +1,19 @@
+{
+  "extensionName": { "message": "Ollama Reply" },
+  "extensionDescription": { "message": "Generate email replies using Ollama LLM running on a local or remote server." },
+  "generateReplyTitle": { "message": "Generate AI Reply" },
+  "monitorTitle": { "message": "Ollama Reply Monitor" },
+  "settingsTitle": { "message": "Ollama Reply Settings" },
+  "btnGenerate": { "message": "Generate Reply" },
+  "btnRegenerate": { "message": "Regenerate" },
+  "btnRefine": { "message": "Refine" },
+  "refinePlaceholder": { "message": "e.g., Make it shorter, more formal..." },
+  "tonePolite": { "message": "Polite" },
+  "toneBusiness": { "message": "Business" },
+  "toneCasual": { "message": "Casual" },
+  "toneAcademic": { "message": "Academic" },
+  "langJa": { "message": "Japanese" },
+  "langEn": { "message": "English" },
+  "statusGenerating": { "message": "Generating... ($1, $2 candidates)" },
+  "statusDone": { "message": "✅ Generated $1 candidates ($2)" }
+}

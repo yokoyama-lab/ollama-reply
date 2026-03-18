@@ -1,273 +1,178 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>Ollama Reply</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-size: 14px;
-      color: #222;
-      background: #f0f2f5;
-      padding: 16px;
-    }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    .card {
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      padding: 20px;
-      margin-bottom: 14px;
-    }
-    h1 { font-size: 18px; display: flex; align-items: center; gap: 8px; }
-    h2 { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #444; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ollama Reply</title>
+    <link rel="stylesheet" href="../css/pico.min.css" />
+    <style>
+      :root { --pico-font-size: 15px; }
+      body { padding: 1rem; max-width: 1000px; margin: 0 auto; }
+      .mail-info {
+        background: var(--pico-card-background-color);
+        padding: 1rem;
+        border-radius: var(--pico-border-radius);
+        margin-bottom: 1rem;
+        border: 1px solid var(--pico-card-border-color);
+        display: none;
+      }
+      .mail-info.show { display: block; }
+      .mail-header-row { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--pico-muted-color); }
+      #mail-body { font-size: 0.9rem; margin-top: 0.5rem; white-space: pre-wrap; color: var(--pico-muted-color); }
+      
+      .gen-controls { display: flex; gap: 0.5rem; align-items: flex-end; margin-bottom: 1rem; }
+      .gen-controls > * { flex: 1; margin-bottom: 0; }
+      .gen-controls label { font-size: 0.8rem; margin-bottom: 0.2rem; }
+      .gen-btn-col { flex: 0 0 auto; }
 
-    /* Status */
-    .status {
-      padding: 8px 12px; border-radius: 6px; margin-bottom: 12px;
-      font-size: 13px; display: none;
-    }
-    .status.info { background: #e8f0fe; color: #1a56db; display: block; }
-    .status.error { background: #fde8e8; color: #c00; display: block; }
-    .status.success { background: #e8f5e9; color: #0a7; display: block; }
-    .status.generating {
-      background: #e8f0fe; color: #1a56db; display: block;
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+      #reply-section { display: none; }
+      #reply-section.show { display: block; }
+      
+      #candidate-tabs { display: flex; gap: 2px; margin-bottom: -1px; }
+      .candidate-tab {
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
+        border-radius: 6px 6px 0 0;
+        border: 1px solid var(--pico-card-border-color);
+        background: var(--pico-muted-background-color);
+        cursor: pointer;
+        position: relative;
+      }
+      .candidate-tab.active { background: var(--pico-background-color); border-bottom-color: var(--pico-background-color); z-index: 2; font-weight: bold; }
+      .close-tab { margin-left: 0.5rem; opacity: 0.5; }
+      .close-tab:hover { opacity: 1; }
 
-    /* Mail info */
-    .mail-info { display: none; }
-    .mail-info.show { display: block; }
-    .mail-subject { font-weight: 600; margin-bottom: 4px; }
-    .mail-from { font-size: 13px; color: #555; }
-    .mail-date { font-size: 12px; color: #888; margin-top: 2px; }
-    .mail-body-preview {
-      margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;
-      font-size: 12px; color: #666; max-height: 100px; overflow-y: auto;
-      white-space: pre-wrap; line-height: 1.5;
-    }
-    .thread-badge {
-      display: inline-block; font-size: 11px; background: #e8f0fe;
-      color: #1a56db; padding: 2px 8px; border-radius: 10px; margin-left: 8px;
-    }
+      #reply-text { height: 350px; border-radius: 0 6px 6px 6px; font-size: 1rem; }
+      
+      .refine-box {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding: 1rem;
+        background: var(--pico-card-background-color);
+        border-radius: var(--pico-border-radius);
+      }
+      .refine-box input { flex: 1; margin-bottom: 0; }
+      .refine-box button { margin-bottom: 0; white-space: nowrap; }
 
-    /* Controls grid */
-    .controls { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
-    .controls label {
-      display: block; font-weight: 600; font-size: 11px;
-      margin-bottom: 3px; color: #555; text-transform: uppercase; letter-spacing: 0.3px;
-    }
-    .controls select, .controls input {
-      width: 100%; padding: 7px 8px; border: 1px solid #d0d0d0;
-      border-radius: 4px; font-size: 13px; background: #fff;
-    }
+      .status { font-size: 0.85rem; margin-bottom: 1rem; padding: 0.4rem 0.8rem; border-radius: 4px; display: none; }
+      .status:not(:empty) { display: block; }
+      .status.info { background: #eef; color: #336; }
+      .status.success { background: #efe; color: #262; }
+      .status.error { background: #fee; color: #622; }
+      .status.generating { background: #fff8e1; color: #795548; border: 1px solid #ffe082; }
 
-    /* Buttons */
-    .btn-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .btn {
-      padding: 8px 16px; border: none; border-radius: 5px;
-      font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s;
-      display: inline-flex; align-items: center; gap: 5px;
-    }
-    .btn-primary { background: #0060df; color: #fff; }
-    .btn-primary:hover { background: #004ebc; }
-    .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
-    .btn-secondary { background: #f0f0f0; color: #333; border: 1px solid #ccc; }
-    .btn-secondary:hover { background: #e0e0e0; }
-    .btn-secondary:disabled { background: #eee; color: #999; cursor: not-allowed; }
-    .btn-success { background: #2e7d32; color: #fff; }
-    .btn-success:hover { background: #1b5e20; }
-    .btn-sm { padding: 5px 10px; font-size: 12px; }
-    .timer { font-size: 12px; color: #888; margin-left: 4px; }
+      .toolbar { display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: space-between; }
+      .toolbar-left, .toolbar-right { display: flex; gap: 0.5rem; }
+      
+      .badge { font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 4px; background: #eee; margin-left: 0.5rem; vertical-align: middle; }
+    </style>
+  </head>
+  <body>
+    <div id="mail-info" class="mail-info">
+      <div class="mail-header-row">
+        <span id="mail-from"></span>
+        <span id="mail-date"></span>
+      </div>
+      <div id="mail-subject" style="font-weight: bold; margin-top: 0.2rem"></div>
+      <div id="mail-body"></div>
+      <div id="thread-badge" class="badge" style="display:none"></div>
+    </div>
 
-    /* Candidate tabs */
-    .candidate-tabs {
-      display: flex; gap: 0; border-bottom: 2px solid #e0e0e0; margin-bottom: 12px;
-    }
-    .candidate-tab {
-      padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 500;
-      border: none; background: none; color: #666;
-      border-bottom: 2px solid transparent; margin-bottom: -2px;
-      transition: all 0.15s;
-    }
-    .candidate-tab:hover { color: #333; }
-    .candidate-tab.active { color: #0060df; border-bottom-color: #0060df; }
-    .candidate-tab .close-tab {
-      margin-left: 6px; font-size: 11px; color: #999; cursor: pointer;
-    }
-    .candidate-tab .close-tab:hover { color: #c00; }
-
-    /* Reply area */
-    .reply-section { display: none; }
-    .reply-section.show { display: block; }
-    .reply-section textarea {
-      width: 100%; min-height: 220px; padding: 12px;
-      border: 1px solid #d0d0d0; border-radius: 6px;
-      font-size: 14px; font-family: inherit; line-height: 1.6; resize: vertical;
-    }
-    .reply-section textarea:focus {
-      outline: none; border-color: #0060df;
-      box-shadow: 0 0 0 2px rgba(0,96,223,0.12);
-    }
-    .reply-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-
-    /* Checkbox row */
-    .check-row {
-      display: flex; gap: 16px; font-size: 13px; margin: 10px 0;
-      align-items: center;
-    }
-    .check-row label { display: flex; align-items: center; gap: 4px; cursor: pointer; font-weight: normal; text-transform: none; }
-
-    /* History panel */
-    .history-panel { display: none; }
-    .history-panel.show { display: block; }
-    .history-item {
-      padding: 10px 12px; border: 1px solid #e8e8e8; border-radius: 6px;
-      margin-bottom: 8px; cursor: pointer; transition: background 0.1s;
-    }
-    .history-item:hover { background: #f8f8ff; }
-    .history-item .h-subject { font-weight: 600; font-size: 13px; }
-    .history-item .h-meta { font-size: 11px; color: #888; margin-top: 2px; }
-    .history-item .h-preview { font-size: 12px; color: #555; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    /* Template editor */
-    .template-editor { display: none; }
-    .template-editor.show { display: block; }
-    .tpl-item {
-      display: flex; gap: 8px; align-items: center; margin-bottom: 6px;
-    }
-    .tpl-item input { flex: 1; padding: 5px 8px; border: 1px solid #d0d0d0; border-radius: 4px; font-size: 13px; }
-    .tpl-item input.tpl-name { max-width: 140px; }
-
-    /* Section toggle */
-    .section-toggles {
-      display: flex; gap: 6px; margin-top: 10px;
-    }
-    .toggle-btn {
-      padding: 5px 12px; font-size: 12px; border: 1px solid #d0d0d0;
-      border-radius: 14px; background: #fff; cursor: pointer; color: #555;
-    }
-    .toggle-btn.active { background: #e8f0fe; border-color: #0060df; color: #0060df; }
-
-    /* Num candidates */
-    .num-candidates {
-      display: flex; align-items: center; gap: 6px; font-size: 13px;
-    }
-    .num-candidates input {
-      width: 50px; padding: 5px; text-align: center;
-      border: 1px solid #d0d0d0; border-radius: 4px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <!-- Header -->
-    <div class="card" style="display:flex; justify-content: space-between; align-items:center;">
-      <h1>🤖 Ollama Reply</h1>
-      <div class="section-toggles">
-        <button class="toggle-btn" id="toggle-monitor">📡 モニター</button>
-        <button class="toggle-btn" id="toggle-history">📜 履歴</button>
-        <button class="toggle-btn" id="toggle-templates">📝 テンプレート</button>
+    <div class="gen-controls">
+      <div>
+        <label for="tone" id="lbl-tone">トーン</label>
+        <select id="tone">
+          <option value="polite">丁寧 (Polite)</option>
+          <option value="business">ビジネス (Business)</option>
+          <option value="casual">カジュアル (Casual)</option>
+          <option value="academic">学術的 (Academic)</option>
+        </select>
+      </div>
+      <div>
+        <label for="language" id="lbl-lang">言語</label>
+        <select id="language">
+          <option value="ja">日本語</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+      <div>
+        <label for="template" id="lbl-tpl">テンプレート</label>
+        <select id="template"></select>
+      </div>
+      <div>
+        <label for="model" id="lbl-model">モデル</label>
+        <select id="model"></select>
+      </div>
+      <div>
+        <label for="num-candidates" id="lbl-num">候補数</label>
+        <input type="number" id="num-candidates" value="1" min="1" max="5" />
+      </div>
+      <div class="gen-btn-col">
+        <button id="btn-generate">返信を生成</button>
       </div>
     </div>
 
     <div id="status" class="status"></div>
 
-    <!-- Mail info -->
-    <div class="card mail-info" id="mail-info">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-        <div>
-          <div class="mail-subject" id="mail-subject"></div>
-          <div class="mail-from" id="mail-from"></div>
-          <div class="mail-date" id="mail-date"></div>
-        </div>
-        <span class="thread-badge" id="thread-badge" style="display:none;"></span>
-      </div>
-      <div class="mail-body-preview" id="mail-body"></div>
-    </div>
+    <div id="reply-section">
+      <div id="candidate-tabs"></div>
+      <textarea id="reply-text" spellcheck="false"></textarea>
 
-    <!-- Controls -->
-    <div class="card">
-      <div class="controls">
-        <div>
-          <label for="tone">トーン</label>
-          <select id="tone">
-            <option value="polite">丁寧</option>
-            <option value="business">ビジネス</option>
-            <option value="casual">カジュアル</option>
-            <option value="academic">学術的</option>
-          </select>
-        </div>
-        <div>
-          <label for="language">言語</label>
-          <select id="language">
-            <option value="ja">日本語</option>
-            <option value="en">English</option>
-          </select>
-        </div>
-        <div>
-          <label for="model">モデル</label>
-          <select id="model"><option value="">(読込中...)</option></select>
-        </div>
-        <div>
-          <label for="template">テンプレート</label>
-          <select id="template"><option value="">一般返信</option></select>
-        </div>
+      <div class="refine-box">
+        <input type="text" id="refine-input" placeholder="例：もっと短く、より丁寧に..." />
+        <button id="btn-refine" class="secondary">修正指示</button>
       </div>
 
-      <div class="check-row">
-        <label><input type="checkbox" id="opt-thread" checked> スレッドコンテキスト</label>
-        <label><input type="checkbox" id="opt-signature" checked> 署名を付加</label>
-        <div class="num-candidates">
-          <label>候補数:</label>
-          <input type="number" id="num-candidates" min="1" max="5" value="1">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <button id="btn-use-reply">返信ウィンドウを開く</button>
+          <button id="btn-use-reply-all" class="outline">全員に返信</button>
+          <label style="font-size: 0.85rem; margin-top: 0.6rem">
+            <input type="checkbox" id="opt-signature" checked /> 署名付与
+          </label>
         </div>
-      </div>
-
-      <div class="btn-row">
-        <button id="btn-generate" class="btn btn-primary" disabled>✨ 返信を生成</button>
-        <span id="timer" class="timer"></span>
+        <div class="toolbar-right">
+          <button id="btn-regenerate" class="outline">再生成</button>
+          <button id="btn-copy" class="outline">コピー</button>
+        </div>
       </div>
     </div>
 
-    <!-- Reply section -->
-    <div class="card reply-section" id="reply-section">
-      <div class="candidate-tabs" id="candidate-tabs"></div>
-      <textarea id="reply-text"></textarea>
-      <div class="reply-actions">
-        <button id="btn-use-reply" class="btn btn-success">📧 返信</button>
-        <button id="btn-use-reply-all" class="btn btn-success">📧 全員に返信</button>
-        <button id="btn-copy" class="btn btn-secondary">📋 コピー</button>
-        <button id="btn-regenerate" class="btn btn-secondary">🔄 再生成</button>
+    <hr />
+    <div class="toolbar" style="margin-top: 2rem">
+      <div class="toolbar-left">
+        <button id="toggle-history" class="outline btn-sm">履歴</button>
+        <button id="toggle-templates" class="outline btn-sm">テンプレート編集</button>
+        <button id="toggle-monitor" class="outline btn-sm">モニター</button>
       </div>
     </div>
 
-    <!-- History panel -->
-    <div class="card history-panel" id="history-panel">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <h2 style="margin:0;">📜 生成履歴</h2>
-        <button id="btn-clear-history" class="btn btn-secondary btn-sm">🗑 クリア</button>
+    <div id="history-panel" class="panel" style="display:none; margin-top: 1rem">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <h3>履歴</h3>
+        <button id="btn-clear-history" class="outline btn-sm">履歴消去</button>
       </div>
       <div id="history-list"></div>
-      <div id="history-empty" style="color:#888; font-size:13px;">履歴はまだありません</div>
+      <p id="history-empty" style="text-align:center; padding: 2rem; color: #999">履歴はありません</p>
     </div>
 
-    <!-- Template editor -->
-    <div class="card template-editor" id="template-editor">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <h2 style="margin:0;">📝 テンプレート管理</h2>
-        <button id="btn-add-template" class="btn btn-secondary btn-sm">＋ 追加</button>
-      </div>
+    <div id="template-editor" class="panel" style="display:none; margin-top: 1rem">
+      <h3>テンプレート編集</h3>
       <div id="template-list"></div>
-      <button id="btn-save-templates" class="btn btn-primary btn-sm" style="margin-top:8px;">保存</button>
+      <div style="margin-top:1rem; display:flex; gap:0.5rem">
+        <button id="btn-add-template" class="outline">＋ 追加</button>
+        <button id="btn-save-templates">保存</button>
+      </div>
     </div>
-  </div>
 
-  <script src="tab.js"></script>
-</body>
+    <div style="margin-top: 2rem; text-align: right; font-size: 0.8rem; color: #999">
+      Ollama Reply v3.3.0 | <span id="timer">0s</span>
+      <label style="display:inline-block; margin-left: 1rem">
+        <input type="checkbox" id="opt-thread" checked /> スレッド文脈
+      </label>
+    </div>
+
+    <script src="tab.js"></script>
+  </body>
 </html>

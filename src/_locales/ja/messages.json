@@ -1,0 +1,19 @@
+{
+  "extensionName": { "message": "Ollama Reply" },
+  "extensionDescription": { "message": "ローカルまたはリモートの Ollama LLM を使用してメールの返信案を生成します。" },
+  "generateReplyTitle": { "message": "AI返信を生成" },
+  "monitorTitle": { "message": "Ollama Reply モニター" },
+  "settingsTitle": { "message": "Ollama Reply 設定" },
+  "btnGenerate": { "message": "返信を生成" },
+  "btnRegenerate": { "message": "再生成" },
+  "btnRefine": { "message": "修正指示" },
+  "refinePlaceholder": { "message": "例：もっと短く、より丁寧に、この点を強調して..." },
+  "tonePolite": { "message": "丁寧" },
+  "toneBusiness": { "message": "ビジネス" },
+  "toneCasual": { "message": "カジュアル" },
+  "toneAcademic": { "message": "学術的" },
+  "langJa": { "message": "日本語" },
+  "langEn": { "message": "英語 (English)" },
+  "statusGenerating": { "message": "返信を生成中... ($1, $2候補)" },
+  "statusDone": { "message": "✅ $1候補を生成しました ($2)" }
+}
