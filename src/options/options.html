@@ -1,121 +1,166 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-size: 13px; padding: 16px; max-width: 520px;
-    }
-    h2 { font-size: 15px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #e0e0e0; }
-    h3 { font-size: 13px; margin: 14px 0 8px; color: #444; }
-    .field { margin-bottom: 12px; }
-    .field label { display: block; font-weight: 600; margin-bottom: 3px; }
-    .field .hint { font-size: 11px; color: #777; margin-top: 2px; }
-    input[type="text"], input[type="number"], select {
-      width: 100%; padding: 6px 8px; border: 1px solid #ccc;
-      border-radius: 4px; font-size: 13px; box-sizing: border-box;
-    }
-    input:focus, select:focus { outline: none; border-color: #0060df; }
-    .row { display: flex; gap: 12px; align-items: flex-end; }
-    .row .field { flex: 1; }
-    .check-field { margin-bottom: 8px; }
-    .check-field label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal; }
-    button {
-      background: #0060df; color: #fff; border: none; border-radius: 4px;
-      padding: 8px 18px; font-size: 13px; cursor: pointer; margin-right: 8px;
-    }
-    button:hover { background: #004ebc; }
-    button.secondary { background: #f0f0f0; color: #333; border: 1px solid #ccc; }
-    button.secondary:hover { background: #e0e0e0; }
-    .saved {
-      display: inline-block; color: #0a0; font-size: 12px;
-      margin-left: 8px; opacity: 0; transition: opacity 0.3s;
-    }
-    .saved.show { opacity: 1; }
-    #model-list { font-size: 12px; color: #555; margin-top: 4px; }
-    #test-result { margin-top: 8px; font-size: 12px; }
-  </style>
-</head>
-<body>
-  <h2>🤖 Ollama Reply — 設定</h2>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ollama Reply - Settings</title>
+    <link rel="stylesheet" href="../css/pico.min.css" />
+    <style>
+      :root {
+        --pico-font-size: 16px;
+      }
+      body {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+      .saved-msg {
+        display: none;
+        background-color: var(--pico-ins-color);
+        color: var(--pico-primary-inverse);
+        padding: 0.5rem 1rem;
+        border-radius: var(--pico-border-radius);
+        margin-top: 1rem;
+        text-align: center;
+      }
+      .saved-msg.show {
+        display: block;
+        animation: fadeIn 0.3s ease-in;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .test-row {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+      .test-row > * {
+        flex: 1;
+      }
+      #test-result {
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Ollama Reply 設定</h1>
+      <p>Ollama サーバーの接続情報と生成パラメーターを設定します。</p>
+    </header>
 
-  <div class="field">
-    <label for="ollamaUrl">Ollama サーバー URL</label>
-    <input type="text" id="ollamaUrl" placeholder="http://localhost:11434">
-    <div class="hint">デフォルトは http://localhost:11434。リモートサーバーを使う場合は SSHポートフォワード (ssh -N -L 11434:localhost:11434 server) で localhost を使用してください</div>
-  </div>
+    <main class="container">
+      <section id="connection">
+        <h2 id="connection-title">サーバー接続</h2>
+        <label for="ollamaUrl">
+          Ollama URL
+          <input
+            type="url"
+            id="ollamaUrl"
+            placeholder="http://localhost:11434"
+          />
+        </label>
 
-  <div class="row">
-    <div class="field">
-      <label for="model">デフォルトモデル</label>
-      <input type="text" id="model" placeholder="gemma3:4b">
-      <div id="model-list"></div>
-    </div>
-    <div class="field">
-      <label>&nbsp;</label>
-      <button type="button" class="secondary" id="btn-fetch-models">モデル一覧取得</button>
-    </div>
-  </div>
+        <div class="test-row">
+          <div>
+            <button id="btn-test" class="secondary">接続テスト</button>
+            <div id="test-result"></div>
+          </div>
+          <div>
+            <button id="btn-fetch-models" class="outline">モデル一覧取得</button>
+            <div id="model-list" style="font-size: 0.8rem; margin-top: 0.5rem"></div>
+          </div>
+        </div>
+      </section>
 
-  <div class="row">
-    <div class="field">
-      <label for="temperature">Temperature</label>
-      <input type="number" id="temperature" min="0" max="2" step="0.1" value="0.7">
-    </div>
-    <div class="field">
-      <label for="maxTokens">最大トークン数</label>
-      <input type="number" id="maxTokens" min="64" max="8192" step="64" value="1024">
-    </div>
-  </div>
+      <hr />
 
-  <h3>スレッド & 署名</h3>
-  <div class="check-field">
-    <label><input type="checkbox" id="threadContext"> スレッドコンテキストを含める（デフォルト）</label>
-  </div>
-  <div class="row">
-    <div class="field">
-      <label for="threadDepth">スレッド遡り数</label>
-      <input type="number" id="threadDepth" min="1" max="10" value="3">
-    </div>
-  </div>
-  <div class="check-field">
-    <label><input type="checkbox" id="autoSignature"> 署名を自動付加（デフォルト）</label>
-  </div>
+      <section id="generation">
+        <h2>生成設定</h2>
+        <div class="grid">
+          <label for="model">
+            デフォルトモデル
+            <input type="text" id="model" placeholder="gemma2:2b" />
+          </label>
+          <label for="maxTokens">
+            最大トークン数
+            <input type="number" id="maxTokens" value="1024" min="64" max="8192" />
+          </label>
+        </div>
 
-  <h3>自動下書き生成</h3>
-  <div class="check-field">
-    <label><input type="checkbox" id="autoDraft"> 新着メール（自分宛て）に自動で返信案を下書き保存</label>
-  </div>
-  <div class="row">
-    <div class="field">
-      <label for="autoDraftTone">自動生成のトーン</label>
-      <select id="autoDraftTone">
-        <option value="polite">丁寧</option>
-        <option value="business">ビジネス</option>
-        <option value="casual">カジュアル</option>
-        <option value="academic">学術的</option>
-      </select>
-    </div>
-    <div class="field">
-      <label for="autoDraftLanguage">自動生成の言語</label>
-      <select id="autoDraftLanguage">
-        <option value="ja">日本語</option>
-        <option value="en">English</option>
-      </select>
-    </div>
-  </div>
-  <div class="field">
-    <div class="hint">有効にすると、To/CC に自分が含まれる新着メールごとに Ollama で返信案を生成し、下書きフォルダに保存します。Ollama サーバーに負荷がかかるため、メール量が多い場合はご注意ください。</div>
-  </div>
+        <label for="temperature">
+          Temperature (ランダム性: 0.0 - 1.0)
+          <input
+            type="range"
+            id="temperature"
+            min="0"
+            max="1"
+            step="0.1"
+            value="0.7"
+          />
+        </label>
+      </section>
 
-  <div style="margin-top: 16px;">
-    <button id="btn-save">保存</button>
-    <button id="btn-test" class="secondary">接続テスト</button>
-    <span id="saved-msg" class="saved">✅ 保存しました</span>
-  </div>
-  <div id="test-result"></div>
+      <hr />
 
-  <script src="options.js"></script>
-</body>
+      <section id="context">
+        <h2>コンテキスト設定</h2>
+        <label for="threadContext">
+          <input type="checkbox" id="threadContext" role="switch" checked />
+          スレッド履歴（過去のやり取り）を含める
+        </label>
+
+        <label for="threadDepth">
+          読み込むスレッドの深さ (件数)
+          <input type="number" id="threadDepth" value="3" min="1" max="10" />
+        </label>
+
+        <label for="autoSignature">
+          <input type="checkbox" id="autoSignature" role="switch" checked />
+          Thunderbird の署名を自動付与する
+        </label>
+      </section>
+
+      <hr />
+
+      <section id="autodraft">
+        <h2>自動下書き生成 (Auto-Draft)</h2>
+        <label for="autoDraft">
+          <input type="checkbox" id="autoDraft" role="switch" />
+          新着メール受信時に自動で返信案を作成する
+        </label>
+
+        <div class="grid">
+          <label for="autoDraftTone">
+            トーン
+            <select id="autoDraftTone">
+              <option value="polite">丁寧 (Polite)</option>
+              <option value="business">ビジネス (Business)</option>
+              <option value="casual">カジュアル (Casual)</option>
+              <option value="academic">学術的 (Academic)</option>
+            </select>
+          </label>
+          <label for="autoDraftLanguage">
+            言語
+            <select id="autoDraftLanguage">
+              <option value="ja">日本語</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+        </div>
+        <small
+          >※ 自動生成の進捗は「Ollama Reply モニター」で確認できます。</small
+        >
+      </section>
+
+      <footer>
+        <button id="btn-save">設定を保存</button>
+        <div id="saved-msg" class="saved-msg">設定を保存しました</div>
+      </footer>
+    </main>
+
+    <script src="options.js"></script>
+  </body>
 </html>

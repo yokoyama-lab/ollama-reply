@@ -1,143 +1,139 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>Ollama Reply — 自動生成モニター</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-size: 14px; color: #222; background: #f0f2f5; padding: 16px;
-    }
-    .container { max-width: 800px; margin: 0 auto; }
-    .card {
-      background: #fff; border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding: 16px; margin-bottom: 12px;
-    }
-    h1 { font-size: 18px; margin-bottom: 4px; }
-    .subtitle { font-size: 13px; color: #666; margin-bottom: 12px; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ollama Reply Monitor</title>
+    <link rel="stylesheet" href="../css/pico.min.css" />
+    <style>
+      :root {
+        --pico-font-size: 16px;
+      }
+      body {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 1.5rem;
+      }
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+      .stat-card {
+        padding: 1rem;
+        text-align: center;
+        border-radius: var(--pico-border-radius);
+        background: var(--pico-card-background-color);
+        border: 1px solid var(--pico-card-border-color);
+      }
+      .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        display: block;
+      }
+      .stat-label {
+        font-size: 0.85rem;
+        color: var(--pico-muted-color);
+      }
+      .feed-item {
+        margin-bottom: 1.5rem;
+        padding: 1.2rem;
+        border-radius: var(--pico-border-radius);
+        border-left: 6px solid var(--pico-muted-color);
+        background: var(--pico-card-background-color);
+        transition: transform 0.2s ease;
+      }
+      .feed-item.processing { border-left-color: var(--pico-primary); }
+      .feed-item.done { border-left-color: var(--pico-ins-color); }
+      .feed-item.error { border-left-color: var(--pico-del-color); }
 
-    /* Stats bar */
-    .stats {
-      display: flex; gap: 16px; font-size: 13px; color: #555;
-      padding: 8px 12px; background: #f8f8f8; border-radius: 6px; margin-bottom: 12px;
-    }
-    .stats .stat-val { font-weight: 600; color: #0060df; }
+      .feed-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.8rem;
+      }
+      .feed-subject { font-weight: bold; font-size: 1.1rem; }
+      .feed-from { font-size: 0.9rem; color: var(--pico-muted-color); }
+      .feed-badge {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 1rem;
+        background: var(--pico-muted-background-color);
+      }
+      .feed-stream {
+        font-family: var(--pico-font-family-monospace);
+        font-size: 0.85rem;
+        background: rgba(0,0,0,0.05);
+        padding: 0.8rem;
+        border-radius: 4px;
+        max-height: 200px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        margin-bottom: 0.5rem;
+      }
+      .feed-meta { font-size: 0.8rem; color: var(--pico-muted-color); }
+      .cursor {
+        display: inline-block;
+        width: 8px;
+        height: 1.2em;
+        background: var(--pico-primary);
+        margin-left: 2px;
+        animation: blink 1s infinite;
+        vertical-align: middle;
+      }
+      @keyframes blink { 50% { opacity: 0; } }
+      #empty-state { text-align: center; padding: 4rem 2rem; color: var(--pico-muted-color); }
 
-    /* Feed items */
-    .feed-item {
-      border: 1px solid #e8e8e8; border-radius: 8px;
-      padding: 14px; margin-bottom: 10px;
-      transition: border-color 0.3s;
-    }
-    .feed-item.processing {
-      border-color: #0060df;
-      box-shadow: 0 0 0 1px rgba(0,96,223,0.15);
-    }
-    .feed-item.done { border-color: #4caf50; }
-    .feed-item.error { border-color: #f44336; }
-    .feed-item.queued { border-color: #e0e0e0; opacity: 0.7; }
-
-    .feed-header {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      margin-bottom: 8px;
-    }
-    .feed-subject { font-weight: 600; font-size: 14px; }
-    .feed-from { font-size: 12px; color: #666; margin-top: 2px; }
-    .feed-badge {
-      font-size: 11px; padding: 2px 10px; border-radius: 10px;
-      font-weight: 500; white-space: nowrap;
-    }
-    .badge-queued { background: #f0f0f0; color: #666; }
-    .badge-processing { background: #e8f0fe; color: #0060df; animation: pulse 1.5s infinite; }
-    .badge-done { background: #e8f5e9; color: #2e7d32; }
-    .badge-error { background: #fde8e8; color: #c00; }
-
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
-
-    /* Streaming text */
-    .feed-stream {
-      margin-top: 8px; padding: 10px 12px;
-      background: #fafafa; border-radius: 6px;
-      font-size: 13px; line-height: 1.6;
-      max-height: 200px; overflow-y: auto;
-      white-space: pre-wrap; word-break: break-word;
-    }
-    .feed-stream.active {
-      background: #f0f5ff;
-      border: 1px solid #d0dfff;
-    }
-    .cursor {
-      display: inline-block; width: 2px; height: 14px;
-      background: #0060df; vertical-align: text-bottom;
-      animation: blink 0.8s step-end infinite;
-    }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-
-    .feed-meta {
-      margin-top: 6px; font-size: 11px; color: #999;
-      display: flex; gap: 12px;
-    }
-
-    /* Empty state */
-    .empty {
-      text-align: center; color: #999; padding: 40px 0; font-size: 14px;
-    }
-    .empty .icon { font-size: 32px; margin-bottom: 8px; }
-
-    /* Toggle */
-    .toggle-row {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 12px;
-    }
-    .toggle-label { font-size: 13px; color: #444; }
-    .switch {
-      position: relative; width: 44px; height: 24px;
-      background: #ccc; border-radius: 12px; cursor: pointer;
-      transition: background 0.2s;
-    }
-    .switch.on { background: #0060df; }
-    .switch .knob {
-      position: absolute; top: 2px; left: 2px;
-      width: 20px; height: 20px; background: #fff;
-      border-radius: 50%; transition: left 0.2s;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-    }
-    .switch.on .knob { left: 22px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <h1>🤖 自動生成モニター</h1>
-          <div class="subtitle">新着メールへの返信案をリアルタイムで確認</div>
-        </div>
-        <div class="toggle-row" style="margin:0;">
-          <span class="toggle-label" style="margin-right:8px;">自動生成</span>
-          <div class="switch" id="auto-toggle">
-            <div class="knob"></div>
-          </div>
-        </div>
+      /* Toggle switch style */
+      .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+      }
+      .auto-toggle-box {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header-row">
+      <hgroup>
+        <h1>Ollama Reply モニター</h1>
+        <p>自動下書き生成のステータスをリアルタイムに表示します</p>
+      </hgroup>
+      <div class="auto-toggle-box">
+        <span>自動生成:</span>
+        <input type="checkbox" id="auto-toggle" role="switch" />
       </div>
     </div>
 
-    <div class="stats" id="stats">
-      <span>キュー: <span class="stat-val" id="stat-queue">0</span></span>
-      <span>処理済: <span class="stat-val" id="stat-done">0</span></span>
-      <span>エラー: <span class="stat-val" id="stat-error">0</span></span>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-value" id="stat-queue">0</span>
+        <span class="stat-label">待機/処理中</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="stat-done" style="color: var(--pico-ins-color)">0</span>
+        <span class="stat-label">完了</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="stat-error" style="color: var(--pico-del-color)">0</span>
+        <span class="stat-label">エラー</span>
+      </div>
     </div>
 
     <div id="feed">
-      <div class="empty" id="empty-state">
-        <div class="icon">📭</div>
-        <div>新着メールを待機中...</div>
-        <div style="font-size:12px; margin-top:4px;">自動生成が有効な場合、自分宛ての新着メールが届くと自動で返信案を生成します</div>
+      <div id="empty-state">
+        <p>現在、自動生成のログはありません。<br><small>新着メールを受信するとここに表示されます。</small></p>
       </div>
     </div>
-  </div>
 
-  <script src="monitor.js"></script>
-</body>
+    <script src="monitor.js"></script>
+  </body>
 </html>
