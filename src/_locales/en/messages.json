@@ -12,6 +12,7 @@
   "toneBusiness": { "message": "Business" },
   "toneCasual": { "message": "Casual" },
   "toneAcademic": { "message": "Academic" },
+  "toneMirror": { "message": "Mirror Style" },
   "langJa": { "message": "Japanese" },
   "langEn": { "message": "English" },
   "statusGenerating": { "message": "Generating... ($1, $2 candidates)" },

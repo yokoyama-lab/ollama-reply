@@ -12,6 +12,7 @@
   "toneBusiness": { "message": "ビジネス" },
   "toneCasual": { "message": "カジュアル" },
   "toneAcademic": { "message": "学術的" },
+  "toneMirror": { "message": "文体適応 (Mirroring)" },
   "langJa": { "message": "日本語" },
   "langEn": { "message": "英語 (English)" },
   "statusGenerating": { "message": "返信を生成中... ($1, $2候補)" },

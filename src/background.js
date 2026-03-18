@@ -195,21 +195,29 @@ function buildPrompt(message, tone, language, templatePrompt, threadMessages) {
         : "professional and concise",
     academic:
       language === "ja" ? "学術的で正確な" : "academic and precise",
+    mirror:
+      language === "ja"
+        ? "相手のメールの語彙、敬語のレベル、文体（ですます調、である調、フランクな表現など）を詳細に分析し、それに完全に調和するスタイル。相手との心理的距離感を維持してください。"
+        : "Mirroring the sender's vocabulary, level of formality, and overall tone. Analyze if they are formal, casual, or technical, and match that style exactly. Maintain the same psychological distance.",
   };
 
   const toneDesc = toneMap[tone] || toneMap.polite;
+  const toneInstruction = (tone === "mirror") 
+    ? (language === "ja" ? `返信は相手の文体をミラーリング（模倣）して書いてください: ${toneDesc}` : `Mirror the sender's tone in your reply: ${toneDesc}`)
+    : (language === "ja" ? `${toneDesc}トーンで返信を書く` : `Write in a ${toneDesc} tone`);
+
   const langLabel = language === "en" ? "English" : "日本語";
 
   let systemPrompt =
     language === "ja"
       ? `あなたはメール返信を書くアシスタントです。以下のルールに従ってください：
-- ${toneDesc}トーンで返信を書く
+- ${toneInstruction}
 - 返信本文のみを出力する（件名や宛先や署名は不要）
 - 適切な挨拶と結びを含める
 - 元のメールの要点に的確に応答する
 - 自然な${langLabel}で書く`
       : `You are an email reply assistant. Follow these rules:
-- Write in a ${toneDesc} tone
+- ${toneInstruction}
 - Output only the reply body (no subject, headers, or signature)
 - Include appropriate greeting and closing
 - Address the key points of the original email
